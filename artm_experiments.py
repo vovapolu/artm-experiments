@@ -1,4 +1,5 @@
 from collections import defaultdict
+import os
 import artm_util
 from artm import *
 import numpy as np
@@ -8,6 +9,7 @@ from scipy.spatial.distance import euclidean
 from csvwriter import CsvWriter
 import random
 import db_manage
+import csv
 
 def greedy_most_distans_points_search(points, used_points, stop_condition, metric=euclidean):
     taken_points = []
@@ -167,9 +169,13 @@ class Experiment:
         """
         self.all_models = models
         self.new_models_idxs = range(len(models))
-        self.marks = dict()
+        self.assessments = dict()
         self.topics_pool = topics_pool
         self.info = defaultdict(list)
+
+        # navigator
+        self.dataset_id = None
+        self.topic_model_id = None
 
     def load_data(self, data_name):
         self.data_name = data_name
@@ -216,17 +222,20 @@ class Experiment:
 
         id = 1
 
-        with CsvWriter(open('modalities.csv', 'w')) as out:
+        def in_dataset_folder(filename):
+            return os.path.join(self.data_name, filename)
+
+        with CsvWriter(open(in_dataset_folder('modalities.csv'), 'w')) as out:
             out << [dict(id=id, name='words')]
 
-        with open('docword.{}.txt'.format(self.data_name)) as f:
+        with open(in_dataset_folder('docword.{}.txt'.format(self.data_name))) as f:
             D = int(f.readline())
             W = int(f.readline())
             n = int(f.readline())
             ndw_s = [map(int, line.split()) for line in f.readlines()]
             ndw_s = [(d - 1, w - 1, cnt) for d, w, cnt in ndw_s]
 
-        with CsvWriter(open('documents.csv', 'w')) as out:
+        with CsvWriter(open(in_dataset_folder('documents.csv'), 'w')) as out:
             out << (
                 dict(id=d,
                      title='Document #{}'.format(d),
@@ -235,7 +244,8 @@ class Experiment:
                 for d in range(D)
             )
 
-        with open('vocab.{}.txt'.format(self.data_name)) as f, CsvWriter(open('terms.csv', 'w')) as out:
+        with open(in_dataset_folder('vocab.{}.txt'.format(self.data_name))) as f, \
+                CsvWriter(open(in_dataset_folder('terms.csv'), 'w')) as out:
             out << (
                 dict(id=i,
                      modality_id=id,
@@ -243,7 +253,7 @@ class Experiment:
                 for i, line in enumerate(f)
             )
 
-        with CsvWriter(open('document_terms.csv', 'w')) as out:
+        with CsvWriter(open(in_dataset_folder('document_terms.csv'), 'w')) as out:
             out << (
                 dict(document_id=d,
                      modality_id=id,
@@ -252,11 +262,15 @@ class Experiment:
                 for d, w, cnt in ndw_s
             )
 
+        self.dataset_id = db_manage.add_dataset_()
+        db_manage.load_dataset_(self.dataset_id, self.data_name, self.data_name)
+
     def save_next_topics_to_navigator(self):
         '''
             Code was taken from here
             https://github.com/bigartm/bigartm-book/blob/master/BigartmNavigatorExample.ipynb
         '''
+        topics_ids = [int(topic[5:]) for topic in self.topics_pool.get_basic_phi().columns]  # topic123 -> 123
 
         pwt = self.topics_pool.get_basic_phi().as_matrix()
         ptd = self.topics_pool.get_basic_theta().as_matrix()
@@ -266,48 +280,73 @@ class Experiment:
         ptw = pwt * pt / pw[:, np.newaxis]
         pdt = ptd * pd / pt[:, np.newaxis]
 
-        with CsvWriter(open('topics.csv', 'w')) as out:
+        def in_dataset_folder(filename):
+            return os.path.join(self.data_name, filename)
+
+        with CsvWriter(open(in_dataset_folder('topics.csv'), 'w')) as out:
             out << [dict(id=0,
                          level=0,
                          id_in_level=0,
                          is_background=False,
                          probability=1)]  # the single zero-level topic with id=0 is required
-            out << (dict(id=1 + t,  # any unique ids
+            out << (dict(id=1 + topics_ids[t],  # any unique ids
                          level=1,  # for a flat non-hierarchical model just leave 1 here
-                         id_in_level=t,
+                         id_in_level=topics_ids[t],
                          is_background=False,  # if you have background topics, they should have True here
                          probability=p)
                     for t, p in enumerate(pt))
 
-        with CsvWriter(open('topic_terms.csv', 'w')) as out:
-            out << (dict(topic_id=1 + t,  # same ids as above
+        with CsvWriter(open(in_dataset_folder('topic_terms.csv'), 'w')) as out:
+            out << (dict(topic_id=1 + topics_ids[t],  # same ids as above
                          modality_id=1,
                          term_id=w,
                          prob_wt=pwt[w, t],
                          prob_tw=ptw[w, t])
                     for w, t in zip(*np.nonzero(pwt)))
 
-        with CsvWriter(open('document_topics.csv', 'w')) as out:
-            out << (dict(topic_id=1 + t,  # same ids as above
+        with CsvWriter(open(in_dataset_folder('document_topics.csv'), 'w')) as out:
+            out << (dict(topic_id=1 + topics_ids[t],  # same ids as above
                          document_id=d,
                          prob_td=ptd[t, d],
                          prob_dt=pdt[t, d])
                     for t, d in zip(*np.nonzero(ptd)))
 
-        with CsvWriter(open('topic_edges.csv', 'w')) as out:
+        with CsvWriter(open(in_dataset_folder('topic_edges.csv'), 'w')) as out:
             out << (dict(parent_id=0,
-                         child_id=1 + t,
+                         child_id=1 + topics_ids[t],
                          probability=p)
                     for t, p in enumerate(pt))
 
+        if self.dataset_id is None:
+            warnings.warn("Dataset wasn't loaded to navigator.")
+        else:
+            self.topic_model_id = db_manage.add_topicmodel_(self.dataset_id)
+            db_manage.load_topicmodel_(self.topic_model_id, self.data_name, self.data_name)
 
+    def load_assessments_from_navigator(self):
 
-    def mark_topics(self, marks):
-        self.marks.update(marks)
+        def in_dataset_folder(filename):
+            return os.path.join(self.data_name, filename)
 
-    def process_marks(self):
-        self.topics_pool.process_marks(self.marks)
-        self.marks = dict()
+        db_manage.dump_assessments_(self.topic_model_id, self.data_name)
+        with open(in_dataset_folder('topic_assessments.csv')) as assessments:
+            reader = csv.DictReader(assessments)
+            for row in reader:
+                topic = 'topic' + row['topic_id']
+                assessment = row['value']
+                if assessment != '':
+                    self.assessments[topic] = int(assessment)
+
+    def assess_topics(self, assessments):
+        self.assessments.update(assessments)
+
+    def show_assessments(self):
+        for topic, assessment in self.assessments.iteritems():
+            print "{}: {}".format(topic, assessment)
+
+    def process_assessments(self):
+        self.topics_pool.process_marks(self.assessments)
+        self.assessments = dict()
 
         print "Unmarked basic topics: {}".format(self.topics_pool.get_basic_topics_count() -
                                                  self.topics_pool.get_marked_basic_topics_count())
