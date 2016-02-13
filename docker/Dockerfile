@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian:unstable
 MAINTAINER Vladimir Polushin (vovapolu@gmail.com)
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -22,19 +22,19 @@ EXPOSE 22
 
 RUN apt-get install --no-install-recommends -y postgresql postgresql-contrib libpq-dev \
     && apt-get clean
-RUN mkdir /var/run/postgresql/9.4-main.pg_stat_tmp/ && chown postgres /var/run/postgresql/9.4-main.pg_stat_tmp/
-RUN sed -i 's|local   all             all                                     peer|local   all             all                                     trust|' /etc/postgresql/9.4/main/pg_hba.conf \
-    && sed -i 's|host    all             all             127.0.0.1/32            md5|host    all             all             127.0.0.1/32            trust|' /etc/postgresql/9.4/main/pg_hba.conf \
-    && sed -i 's|host    all             all             ::1/128                 md5|host    all             all             ::1/128                 trust|' /etc/postgresql/9.4/main/pg_hba.conf
+RUN mkdir /var/run/postgresql/9.5-main.pg_stat_tmp/ && chown postgres /var/run/postgresql/9.5-main.pg_stat_tmp/
+RUN sed -i 's|local   all             all                                     peer|local   all             all                                     trust|' /etc/postgresql/9.5/main/pg_hba.conf \
+    && sed -i 's|host    all             all             127.0.0.1/32            md5|host    all             all             127.0.0.1/32            trust|' /etc/postgresql/9.5/main/pg_hba.conf \
+    && sed -i 's|host    all             all             ::1/128                 md5|host    all             all             ::1/128                 trust|' /etc/postgresql/9.5/main/pg_hba.conf
 RUN mkdir /etc/services.d/postgresql \
     && echo '#!/bin/sh' > /etc/services.d/postgresql/run \
-    && echo 'exec su -c "/usr/lib/postgresql/9.4/bin/postmaster -D /var/lib/postgresql/9.4/main -c config_file=/etc/postgresql/9.4/main/postgresql.conf" postgres 2>&1' >> /etc/services.d/postgresql/run \
+    && echo 'exec su -c "/usr/lib/postgresql/9.5/bin/postmaster -D /var/lib/postgresql/9.5/main -c config_file=/etc/postgresql/9.5/main/postgresql.conf" postgres 2>&1' >> /etc/services.d/postgresql/run \
     && chmod +x /etc/services.d/postgresql/run
 
-RUN apt-get install -y python3 python3-dev python3-pip
+RUN apt-get install -y python3 python3-dev python3-pip python3-setuptools
 
-RUN apt-get install -y python2 python2-dev python2-pip
-RUN apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose
+RUN apt-get install -y python python-dev python-pip python-setuptools
+RUN apt-get install -y python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas
 
 # set virmc
 RUN curl -o ~/.vimrc https://raw.githubusercontent.com/omtcyf0/dotfiles/master/.vimrc
@@ -45,6 +45,15 @@ ENV LANG C.UTF-8
 
 RUN cd /root && git clone https://github.com/omtcyf0/tm_navigator
 RUN cd /root && git clone https://github.com/vovapolu/artm-experiments
+
+RUN apt-get install -y git make cmake build-essential libboost-all-dev
+RUN cd /root && git clone --branch=stable https://github.com/bigartm/bigartm.git
+WORKDIR /root/bigartm
+RUN mkdir build && cd build && cmake .. && make
+RUN cd /root/bigartm && cp build/3rdparty/protobuf-cmake/protoc/protoc 3rdparty/protobuf/src/
+RUN cd /root/bigartm/3rdparty/protobuf/python && python setup.py build && python setup.py install
+
+ENV BIGARTM_HOME /root
 
 WORKDIR /root/tm_navigator
 RUN pip3 install --editable .
@@ -61,5 +70,6 @@ RUN mkdir /etc/services.d/artm-experiments \
     && echo '#!/bin/sh' > /etc/services.d/artm-experiments/run \
     && echo 'cd /root/artm-experiments/' >> /etc/services.d/artm-experiments/run \
     && echo 'git pull' >> /etc/services.d/artm-experiments/run \
-    && echo 'ipython notebook --no-browser --ip=* --port=7000' >> /etc/services.d/artm-experiments/run \
     && chmod +x /etc/services.d/tm_navigator/run
+
+RUN pip install csvwriter
