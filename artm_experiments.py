@@ -271,7 +271,7 @@ class Experiment:
             )
 
         output = Experiment.run_navigator('add_dataset')
-        self.dataset_id = re.search('Added Dataset #(\d+)', output).group(0)
+        self.dataset_id = re.search('Added Dataset #(\d+)', output).group(1)
         Experiment.run_navigator('load_dataset', '--dataset-id', self.dataset_id,
                                  '--title', self.data_name, '-dir', self.data_name)
 
@@ -332,7 +332,7 @@ class Experiment:
             warnings.warn("Dataset wasn't loaded to navigator.")
         else:
             output = Experiment.run_navigator('add_topicmodel', '--dataset-id', self.dataset_id)
-            self.topic_model_id = re.search('Added Topic Model #(\d+) for Dataset #(\d+)', output).group(0)
+            self.topic_model_id = re.search('Added Topic Model #(\d+) for Dataset #(\d+)', output).group(1)
             Experiment.run_navigator('load_topicmodel', '--topicmodel-id', self.topic_model_id,
                                      '--title', self.data_name, '-dir', self.data_name)
 
