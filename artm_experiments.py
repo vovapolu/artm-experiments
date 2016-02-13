@@ -215,13 +215,19 @@ class Experiment:
     def show_all_themes(self):
         self.show_next_topics_batch(self.topics_pool.get_basic_topics_count())
 
+    @staticmethod
+    def get_navigator_home():
+        return os.path.abspath(os.getenv('NAVIGATOR_HOME', '../tm_navigator'))
+
+    @staticmethod
+    def run_navigator(*args):
+        return check_output([os.path.join(Experiment.get_navigator_home(), 'db_manage.py')] + list(args))
+
     def save_dataset_to_navigator(self):
         '''
             Code was taken from here
             https://github.com/bigartm/bigartm-book/blob/master/BigartmNavigatorExample.ipynb
         '''
-
-        navigator_home = os.getenv('NAVIGATOR_HOME', '../tm_navigator')
 
         def in_dataset_folder(filename):
             return os.path.join(self.data_name, filename)
@@ -263,18 +269,16 @@ class Experiment:
                 for d, w, cnt in ndw_s
             )
 
-        output = check_output([os.path.join(navigator_home, 'db_manage.py'), 'add_dataset'])
+        output = Experiment.run_navigator('add_dataset')
         self.dataset_id = re.search('Added Dataset #(\d+)', output).group(0)
-        call([os.path.join(navigator_home, 'db_manage.py'), 'load_dataset', '--dataset-id', self.dataset_id,
-              '--title', self.data_name, '-dir', self.data_name])
+        Experiment.run_navigator('load_dataset', '--dataset-id', self.dataset_id,
+                                 '--title', self.data_name, '-dir', self.data_name)
 
     def save_next_topics_to_navigator(self):
         '''
             Code was taken from here
             https://github.com/bigartm/bigartm-book/blob/master/BigartmNavigatorExample.ipynb
         '''
-
-        navigator_home = os.getenv('NAVIGATOR_HOME', '../tm_navigator')
 
         topics_ids = [int(topic[5:]) for topic in self.topics_pool.get_basic_phi().columns]  # topic123 -> 123
 
@@ -326,20 +330,17 @@ class Experiment:
         if self.dataset_id is None:
             warnings.warn("Dataset wasn't loaded to navigator.")
         else:
-            output = check_output([os.path.join(navigator_home, 'db_manage.py'),
-                                   'add_topicmodel', '--dataset-id', self.dataset_id])
+            output = Experiment.run_navigator('add_topicmodel', '--dataset-id', self.dataset_id)
             self.topic_model_id = re.search('Added Topic Model #(\d+) for Dataset #(\d+)', output).group(0)
-            call([os.path.join(navigator_home, 'db_manage.py'), 'load_topicmodel', '--topicmodel-id', self.topic_model_id,
-                  '--title', self.data_name, '-dir', self.data_name])
+            Experiment.run_navigator('load_topicmodel', '--topicmodel-id', self.topic_model_id,
+                                     '--title', self.data_name, '-dir', self.data_name)
 
     def load_assessments_from_navigator(self):
 
         def in_dataset_folder(filename):
             return os.path.join(self.data_name, filename)
 
-        navigator_home = os.getenv('NAVIGATOR_HOME', '../tm_navigator')
-
-        call([os.path.join(navigator_home, 'db_manage.py'), 'dump_assessments', '--dir', self.data_name])
+        Experiment.run_navigator('dump_assessments', '--dir', self.data_name)
         with open(in_dataset_folder('topic_assessments.csv')) as assessments:
             reader = csv.DictReader(assessments)
             for row in reader:
