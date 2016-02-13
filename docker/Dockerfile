@@ -73,3 +73,5 @@ RUN mkdir /etc/services.d/artm-experiments \
     && echo 'cd /root/artm-experiments/' >> /etc/services.d/artm-experiments/run \
     && echo 'git pull' >> /etc/services.d/artm-experiments/run \
     && chmod +x /etc/services.d/artm-experiments/run
+
+RUN chmod 777 /root/artm-experiments/run_ipython.sh
