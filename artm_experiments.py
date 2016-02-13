@@ -221,8 +221,11 @@ class Experiment:
 
     @staticmethod
     def run_navigator(*args):
+        cur_path = os.getcwd()
         os.chdir(Experiment.get_navigator_home())
-        return check_output(['./db_manage.py'] + list(args))
+        output = check_output(['./db_manage.py'] + list(args))
+        os.chdir(cur_path)
+        return output
 
     def save_dataset_to_navigator(self):
         '''
