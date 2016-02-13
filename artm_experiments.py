@@ -273,7 +273,7 @@ class Experiment:
         output = Experiment.run_navigator('add_dataset')
         self.dataset_id = re.search('Added Dataset #(\d+)', output).group(1)
         Experiment.run_navigator('load_dataset', '--dataset-id', self.dataset_id,
-                                 '--title', self.data_name, '-dir', self.data_name)
+                                 '--title', self.data_name, '-dir', os.path.abspath(self.data_name))
 
     def save_next_topics_to_navigator(self):
         '''
@@ -334,14 +334,14 @@ class Experiment:
             output = Experiment.run_navigator('add_topicmodel', '--dataset-id', self.dataset_id)
             self.topic_model_id = re.search('Added Topic Model #(\d+) for Dataset #(\d+)', output).group(1)
             Experiment.run_navigator('load_topicmodel', '--topicmodel-id', self.topic_model_id,
-                                     '--title', self.data_name, '-dir', self.data_name)
+                                     '--title', self.data_name, '-dir', os.path.abspath(self.data_name))
 
     def load_assessments_from_navigator(self):
 
         def in_dataset_folder(filename):
             return os.path.join(self.data_name, filename)
 
-        Experiment.run_navigator('dump_assessments', '--dir', self.data_name)
+        Experiment.run_navigator('dump_assessments', '--dir', os.path.abspath(self.data_name))
         with open(in_dataset_folder('topic_assessments.csv')) as assessments:
             reader = csv.DictReader(assessments)
             for row in reader:
