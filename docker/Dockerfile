@@ -35,6 +35,7 @@ RUN apt-get install -y python3 python3-dev python3-pip python3-setuptools
 
 RUN apt-get install -y python python-dev python-pip python-setuptools
 RUN apt-get install -y python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas
+RUN pip install csvwriter
 
 # set virmc
 RUN curl -o ~/.vimrc https://raw.githubusercontent.com/omtcyf0/dotfiles/master/.vimrc
@@ -54,6 +55,7 @@ RUN cd /root/bigartm && cp build/3rdparty/protobuf-cmake/protoc/protoc 3rdparty/
 RUN cd /root/bigartm/3rdparty/protobuf/python && python setup.py build && python setup.py install
 
 ENV BIGARTM_HOME /root
+ENV NAVIGATOR_HOME /root/tm_navigator
 
 WORKDIR /root/tm_navigator
 RUN pip3 install --editable .
@@ -70,6 +72,4 @@ RUN mkdir /etc/services.d/artm-experiments \
     && echo '#!/bin/sh' > /etc/services.d/artm-experiments/run \
     && echo 'cd /root/artm-experiments/' >> /etc/services.d/artm-experiments/run \
     && echo 'git pull' >> /etc/services.d/artm-experiments/run \
-    && chmod +x /etc/services.d/tm_navigator/run
-
-RUN pip install csvwriter
+    && chmod +x /etc/services.d/artm-experiments/run
