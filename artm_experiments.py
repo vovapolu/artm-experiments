@@ -223,8 +223,10 @@ class Experiment:
     def run_navigator(*args):
         cur_path = os.getcwd()
         os.chdir(Experiment.get_navigator_home())
-        output = check_output(['yes', '|', './db_manage.py'] + list(args))
-        os.chdir(cur_path)
+        try:
+            output = check_output(['yes', '|', './db_manage.py'] + list(args))
+        finally:
+            os.chdir(cur_path)
         return output
 
     def save_dataset_to_navigator(self):
@@ -274,6 +276,8 @@ class Experiment:
                      count=cnt)
                 for d, w, cnt in ndw_s
             )
+
+        print('Files saved.')
 
         output = Experiment.run_navigator('add_dataset')
         self.dataset_id = re.search('Added Dataset #(\d+)', output).group(1)
