@@ -224,7 +224,7 @@ class Experiment:
         cur_path = os.getcwd()
         os.chdir(Experiment.get_navigator_home())
         try:
-            output = check_output('yes | ./db_manage.py' + ' '.join(args), shell=True)
+            output = check_output('yes | ./db_manage.py ' + ' '.join(args), shell=True)
         finally:
             os.chdir(cur_path)
         return output
