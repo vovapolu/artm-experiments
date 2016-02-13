@@ -350,7 +350,8 @@ class Experiment:
         def in_dataset_folder(filename):
             return os.path.join(self.data_name, filename)
 
-        Experiment.run_navigator('dump_assessments', '--dir', os.path.abspath(self.data_name))
+        Experiment.run_navigator('dump_assessments', '-dir', os.path.abspath(self.data_name),
+                                 '-m', self.topic_model_id)
         with open(in_dataset_folder('topic_assessments.csv')) as assessments:
             reader = csv.DictReader(assessments)
             for row in reader:
