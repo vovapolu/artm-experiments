@@ -223,7 +223,7 @@ class Experiment:
     def run_navigator(*args):
         cur_path = os.getcwd()
         os.chdir(Experiment.get_navigator_home())
-        output = check_output(['./db_manage.py'] + list(args))
+        output = check_output(['yes | ./db_manage.py'] + list(args))
         os.chdir(cur_path)
         return output
 
@@ -235,6 +235,8 @@ class Experiment:
 
         def in_dataset_folder(filename):
             return os.path.join(self.data_name, filename)
+
+        id = 1
 
         with CsvWriter(open(in_dataset_folder('modalities.csv'), 'w')) as out:
             out << [dict(id=id, name='words')]
