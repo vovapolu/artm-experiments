@@ -138,19 +138,20 @@ class Pool:
         return self.topics_words[np.argpartition(-words, words_number)[:words_number]]
 
     def get_next_topics(self, topics_number):
-        return self.get_basic_topics()[:topics_number]
+        topics = []
+        for topic in self.get_basic_topics():
+            if topic not in self.marks:
+                topics.append(topic)
+            if len(topics) >= topics_number:
+                break
+
+        return topics
 
     def process_marks(self, marks):
         self.marks.update(marks)
 
     def get_marked_topics_count(self):
         return len(self.marks)
-
-    #def get_marked_basic_topics_count(self):
-    #    return len([topic for topic in self.get_basic_topics() if topic in self.marks])
-
-    def save(self, filename, topics='all'):
-        pass
 
 class Experiment:
 
@@ -201,6 +202,7 @@ class Experiment:
 
                 for builder_option in Experiment._info_builder:
                     self.info[builder_option[0]].append(builder_option[1](self, model['model']))
+                # rewrite to cycle
 
         print("Total basic topics: {}".format(self.topics_pool.get_basic_topics_count()))
 
@@ -284,16 +286,17 @@ class Experiment:
         Experiment.run_navigator('load_dataset', '--dataset-id', self.dataset_id,
                                  '--title', self.data_name, '-dir', os.path.abspath(self.data_name))
 
-    def save_next_topics_to_navigator(self):
+    def save_next_topics_batch_to_navigator(self, topic_batch_size):
         '''
             Code was taken from here
             https://github.com/bigartm/bigartm-book/blob/master/BigartmNavigatorExample.ipynb
         '''
 
-        topics_ids = [int(topic[5:]) for topic in self.topics_pool.get_basic_phi().columns]  # topic123 -> 123
+        topics = self.topics_pool.get_next_topics(topic_batch_size)
+        topics_ids = [int(topic[5:]) for topic in topics]  # topic123 -> 123
 
-        pwt = self.topics_pool.get_basic_phi().as_matrix()
-        ptd = self.topics_pool.get_basic_theta().as_matrix()
+        pwt = self.topics_pool.get_basic_phi()[topics].as_matrix()
+        ptd = self.topics_pool.get_basic_theta().loc[topics].as_matrix()
         pd = 1.0 / ptd.shape[1]
         pt = (ptd * pd).sum(axis=1)
         pw = (pwt * pt).sum(axis=1)
