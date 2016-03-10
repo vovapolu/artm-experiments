@@ -35,7 +35,7 @@ RUN apt-get install -y python3 python3-dev python3-pip python3-setuptools
 
 RUN apt-get install -y python python-dev python-pip python-setuptools
 RUN apt-get install -y python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas
-RUN pip install csvwriter, ipython
+RUN pip install csvwriter ipython
 
 # set virmc
 RUN curl -o ~/.vimrc https://raw.githubusercontent.com/omtcyf0/dotfiles/master/.vimrc
@@ -75,3 +75,4 @@ RUN mkdir /etc/services.d/artm-experiments \
     && chmod +x /etc/services.d/artm-experiments/run
 
 RUN chmod 777 /root/artm-experiments/run_ipython.sh
+COPY kos /root/artm-experiments/kos/
