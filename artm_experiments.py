@@ -216,21 +216,26 @@ class Experiment:
             os.chdir(cur_path)
         return output
 
-    def save_dataset_to_navigator(self):
+    def save_dataset_to_navigator(self, data_name=None):
         '''
             Code was taken from here
             https://github.com/bigartm/bigartm-book/blob/master/BigartmNavigatorExample.ipynb
         '''
 
+        if data_name is None:
+            if not hasattr(self, "data_name"):
+                warnings.warn("Dataset name isn't specified. Skip saving.")
+            data_name = self.data_name
+
         def in_dataset_folder(filename):
-            return os.path.join(self.data_name, filename)
+            return os.path.join(data_name, filename)
 
         id = 1
 
         with CsvWriter(open(in_dataset_folder('modalities.csv'), 'w')) as out:
             out << [dict(id=id, name='words')]
 
-        with open(in_dataset_folder('docword.{}.txt'.format(self.data_name))) as f:
+        with open(in_dataset_folder('docword.{}.txt'.format(data_name))) as f:
             D = int(f.readline())
             W = int(f.readline())
             n = int(f.readline())
@@ -246,7 +251,7 @@ class Experiment:
                 for d in range(D)
             )
 
-        with open(in_dataset_folder('vocab.{}.txt'.format(self.data_name))) as f, \
+        with open(in_dataset_folder('vocab.{}.txt'.format(data_name))) as f, \
                 CsvWriter(open(in_dataset_folder('terms.csv'), 'w')) as out:
             out << (
                 dict(id=i,
@@ -269,13 +274,18 @@ class Experiment:
         output = Experiment.run_navigator('add_dataset')
         self.dataset_id = re.search('Added Dataset #(\d+)', output).group(1)
         Experiment.run_navigator('load_dataset', '--dataset-id', self.dataset_id,
-                                 '--title', self.data_name, '-dir', os.path.abspath(self.data_name))
+                                 '--title', data_name, '-dir', os.path.abspath(data_name))
 
-    def save_next_topics_batch_to_navigator(self, topic_batch_size):
+    def save_next_topics_batch_to_navigator(self, topic_batch_size, data_name=None):
         '''
             Code was taken from here
             https://github.com/bigartm/bigartm-book/blob/master/BigartmNavigatorExample.ipynb
         '''
+
+        if data_name is None:
+            if not hasattr(self, "data_name"):
+                warnings.warn("Dataset name isn't specified. Skip saving.")
+            data_name = self.data_name
 
         topics = self.topics_pool.get_next_topics(topic_batch_size)
         topics_ids = [int(topic[5:]) for topic in topics]  # topic123 -> 123
@@ -289,7 +299,7 @@ class Experiment:
         pdt = ptd * pd / pt[:, np.newaxis]
 
         def in_dataset_folder(filename):
-            return os.path.join(self.data_name, filename)
+            return os.path.join(data_name, filename)
 
         with CsvWriter(open(in_dataset_folder('topics.csv'), 'w')) as out:
             out << [dict(id=0,
@@ -331,14 +341,19 @@ class Experiment:
             output = Experiment.run_navigator('add_topicmodel', '--dataset-id', self.dataset_id)
             self.topic_model_id = re.search('Added Topic Model #(\d+) for Dataset #(\d+)', output).group(1)
             Experiment.run_navigator('load_topicmodel', '--topicmodel-id', self.topic_model_id,
-                                     '--title', self.data_name, '-dir', os.path.abspath(self.data_name))
+                                     '--title', data_name, '-dir', os.path.abspath(data_name))
 
-    def load_assessments_from_navigator(self):
+    def load_assessments_from_navigator(self, data_name=None):
+
+        if data_name is None:
+            if not hasattr(self, "data_name"):
+                warnings.warn("Dataset name isn't specified. Skip saving.")
+            data_name = self.data_name
 
         def in_dataset_folder(filename):
-            return os.path.join(self.data_name, filename)
+            return os.path.join(data_name, filename)
 
-        Experiment.run_navigator('dump_assessments', '-dir', os.path.abspath(self.data_name),
+        Experiment.run_navigator('dump_assessments', '-dir', os.path.abspath(data_name),
                                  '-m', self.topic_model_id)
         with open(in_dataset_folder('topic_assessments.csv')) as assessments:
             reader = csv.DictReader(assessments)
