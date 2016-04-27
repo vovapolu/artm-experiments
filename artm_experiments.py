@@ -225,6 +225,7 @@ class Experiment:
         if data_name is None:
             if not hasattr(self, "data_name"):
                 warnings.warn("Dataset name isn't specified. Skip saving.")
+                return
             data_name = self.data_name
 
         def in_dataset_folder(filename):
@@ -285,6 +286,7 @@ class Experiment:
         if data_name is None:
             if not hasattr(self, "data_name"):
                 warnings.warn("Dataset name isn't specified. Skip saving.")
+                return
             data_name = self.data_name
 
         topics = self.topics_pool.get_next_topics(topic_batch_size)
@@ -348,6 +350,7 @@ class Experiment:
         if data_name is None:
             if not hasattr(self, "data_name"):
                 warnings.warn("Dataset name isn't specified. Skip saving.")
+                return
             data_name = self.data_name
 
         def in_dataset_folder(filename):
@@ -376,4 +379,3 @@ class Experiment:
 
         print("Unmarked basic topics: {}".format(self.topics_pool.get_basic_topics_count() -
                                                  self.topics_pool.get_marked_basic_topics_count()))
-
