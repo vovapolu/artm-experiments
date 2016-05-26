@@ -77,9 +77,12 @@ class Pool:
     def get_all_topics(self):
         return self.phi.columns
 
+    def get_top_words_by_vector(self, vector, words_number=5):
+        return self.topics_words[np.argsort(-np.array(vector))[:words_number]]
+
     def get_top_words_by_topic(self, topic, words_number=5):
         words = self.phi[topic].values
-        return self.topics_words[np.argpartition(-words, words_number)[:words_number]]
+        return self.topics_words[np.argsort(-words)[:words_number]]
 
     def get_closest_basic_topic(self, topic, metric=euclidean):
         closest_topic = None
