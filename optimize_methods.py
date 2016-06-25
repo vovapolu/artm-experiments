@@ -32,7 +32,7 @@ class OptimizationTopicsFilter:
         self.verbose = verbose
         self.projections = dict()
 
-    def get_dist(self, topic, topics, used_topics):
+    def get_dist(self, topic_name, topic, topics, used_topics):
         X = topics[used_topics].as_matrix()
         func = lambda w: self.metric(w, X, topic)
         jac = lambda w: self.jac_metric(w, X, topic)
@@ -47,6 +47,8 @@ class OptimizationTopicsFilter:
                                       options={'maxiter': 5},
                                       tol=1e-4)
 
+        self.projections[topic_name] = X.dot(res.x)
+
         return res
 
     def filter_topics(self, topics, used_topics):
@@ -59,9 +61,8 @@ class OptimizationTopicsFilter:
         for topic in shuffled_topics:
             y = topics[topic].as_matrix().ravel()
             res_topics.remove(topic)
-            res = self.get_dist(y, topics, res_topics)
+            res = self.get_dist(topic, y, topics, res_topics)
 
-            self.projections[topic] = X.dot(res.x)
             self.res_vals[topic] = res.fun
 
             if res.fun > self.eps:
